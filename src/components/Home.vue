@@ -1,6 +1,7 @@
 <template>
   <div class="home-ctn clearfix">
     <h1>{{header.title}}</h1>
+    <h3>报警时间范围：{{firstDataTime + ' —— ' + lastestLogTime}}</h3>
     <div class="table-ctn">
       <el-table height="calc(100vh - 200px)" :data="logs" style="width: 50%;">
         <el-table-column sortable prop="time" label="日期">
@@ -29,8 +30,8 @@
 
 <script>
 import axios from "axios";
-import { Base64 } from "js-base64";
-// let Base64 = require('js-base64').Base64;
+import * as API from "../API/Service.js";
+import md5 from 'js-md5';
 export default {
   name: "Home",
   data() {
@@ -43,44 +44,64 @@ export default {
       typesMap: {},
       statistical: [],
       allLoaded: false,
-      firstDataTime: null
+      firstDataTime: null,
+      lastestLogTime: null // 最新一条的报告时间
     };
   },
   created() {
     this.getLogs(this.count, true);
+    setInterval(() => {
+      this.getLatestLogs();
+    }, 5000);
   },
   methods: {
     getLogs(count, init) {
       if (this.busy) return;
       this.busy = true;
-      axios
-        .get("/api/chatlog", {
-          headers: {
-            "Access-Control-Allow-Origin": "*"
-          },
-          params: {
-            userId: "3051726979@chatroom",
-            count: count || this.count
+      var that = this;
+      API.chatlog(this.count).then(res => {
+        if (init) {
+          that.header = res.data.splice(0, 1)[0];
+        } else {
+          /* 只处理最后10条数据 */
+          res.data.splice(0, res.data.length - 10);
+        }
+        let newData = that.parse(res.data);
+        if (init) that.lastestLogTime = newData[0].time;
+        if (newData[newData.length - 1].time === that.firstDataTime) {
+          that.allLoaded = true;
+          that.busy = false;
+          return;
+        }
+        that.firstDataTime = newData[newData.length - 1].time;
+        that.logs.push(...newData);
+        that.sortErrorType(); //统计错误类型
+        that.busy = false;
+      });
+    },
+    getLatestLogs() {
+      if (this.busy) return;
+      this.busy = true;
+      var that = this;
+      API.chatlog(20).then(res => {
+        let newData = that.parse(res.data);
+        if (newData[0].time === that.lastestLogTime) {
+          that.busy = false;
+          return;
+        }
+        for (let i = 0; i < newData.length; i++) {
+          const element = newData[i];
+          if (element.time === that.lastestLogTime) {
+            // newData.slice(i,)
+            newData.splice(i, newData.length - i - 1); //去除已存在的数据
           }
-        })
-        .then(res => {
-          if (init) {
-            this.header = res.data.splice(0, 1)[0];
-          } else {
-            /* 只处理最后10条数据 */
-            res.data.splice(0, res.data.length - 10);
-          }
-          let newData = this.parse(res.data);
-          if (newData[newData.length - 1].time === this.firstDataTime) {
-            this.allLoaded = true;
-            this.busy = false;
-            return;
-          }
-          this.firstDataTime = newData[newData.length - 1].time;
-          this.logs.push(...newData);
-          this.sortErrorType(); //统计错误类型
-          this.busy = false;
-        });
+        }
+        that.lastestLogTime = newData[0].time;
+        // console.log('newData: ', newData);
+        that.logs.unshift(...newData);
+        that.sortErrorType(); //统计错误类型
+        that.busy = false;
+      });
     },
     loadMore() {
       if (this.busy) return;
@@ -126,7 +147,7 @@ export default {
           }
           if (line.indexOf("错误样例: ") === 0) {
             log.position = line.substr(-line.length + 5).trim();
-            let b64 = Base64.encode(log.position);
+            let b64 = md5(log.position);
             if (this.types[b64]) {
               this.types[b64]++;
             } else {
