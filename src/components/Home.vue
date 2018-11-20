@@ -29,9 +29,8 @@
 </template>
 
 <script>
-import axios from "axios";
 import * as API from "../API/Service.js";
-import md5 from 'js-md5';
+import md5 from "js-md5";
 export default {
   name: "Home",
   data() {
