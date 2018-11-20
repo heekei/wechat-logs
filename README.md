@@ -1,29 +1,9 @@
 # wechat-logs
 
-## Project setup
-```
-npm install
-```
+## 基于Wechat-Plugin-MacOS
 
-### Compiles and hot-reloads for development
-```
-npm run serve
-```
+ 感谢TKkk-iOSer提供的微信插件[Wechat-Plugin-MacOS](https://github.com/TKkk-iOSer/WeChatPlugin-MacOS)
 
-### Compiles and minifies for production
-```
-npm run build
-```
+## 通过插件提供的接口读取聊天记录
 
-### Run your tests
-```
-npm run test
-```
-
-### Lints and fixes files
-```
-npm run lint
-```
-
-### Customize configuration
-See [Configuration Reference](https://cli.vuejs.org/config/).
+解析报警群聊记录，对其进行分析处理
